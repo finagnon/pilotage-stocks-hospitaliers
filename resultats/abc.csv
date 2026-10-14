@@ -1,0 +1,49 @@
+code_article,libelle,categorie,valeur_consommee,part_cumulee,classe_abc
+ART-0038,Perfuseur par gravité,Dispositifs médicaux stériles,1372543.12,0.1443,A
+ART-0007,Irinotécan 300 mg,Anticancéreux injectables,1052813.52,0.2551,A
+ART-0001,Cisplatine 50 mg,Anticancéreux injectables,635712.6,0.3219,A
+ART-0035,Prolongateur 3 voies,Dispositifs médicaux stériles,447707.54,0.369,A
+ART-0034,Seringue 50 mL,Dispositifs médicaux stériles,410025.01,0.4121,A
+ART-0036,Aiguille Huber 20G,Dispositifs médicaux stériles,356183.52,0.4496,A
+ART-0009,Amoxicilline 1 g,Antibiotiques,331252.09,0.4844,A
+ART-0011,Pipéracilline-tazobactam 4 g,Antibiotiques,316988.12,0.5178,A
+ART-0046,Oligo-éléments 10 mL,Nutrition clinique,287046.36,0.5479,A
+ART-0040,Pansement transparent,Dispositifs médicaux stériles,278030.61,0.5772,A
+ART-0014,Gentamicine 80 mg,Antibiotiques,255168.86,0.604,A
+ART-0031,"Bicarbonate 1,4 % 500 mL",Solutés de perfusion,243667.74,0.6296,A
+ART-0003,Paclitaxel 300 mg,Anticancéreux injectables,234978.66,0.6544,A
+ART-0017,Paracétamol 1 g inj.,Antalgiques,222909.03,0.6778,A
+ART-0039,Gants stériles T7,Dispositifs médicaux stériles,219002.12,0.7008,A
+ART-0028,Ringer lactate 500 mL,Solutés de perfusion,202523.4,0.7221,A
+ART-0002,Carboplatine 450 mg,Anticancéreux injectables,193762.1,0.7425,A
+ART-0008,Pembrolizumab 100 mg,Anticancéreux injectables,185078.81,0.762,A
+ART-0015,Céfazoline 2 g,Antibiotiques,184991.6,0.7814,A
+ART-0047,Vitamines inj.,Nutrition clinique,173538.72,0.7997,A
+ART-0029,Glucose 10 % 250 mL,Solutés de perfusion,146346.76,0.8151,B
+ART-0016,Métronidazole 500 mg,Antibiotiques,126362.2,0.8284,B
+ART-0013,Méropénem 1 g,Antibiotiques,125062.96,0.8415,B
+ART-0025,"NaCl 0,9 % 100 mL",Solutés de perfusion,122012.1,0.8543,B
+ART-0006,Gemcitabine 1 g,Anticancéreux injectables,99183.44,0.8648,B
+ART-0005,Docétaxel 160 mg,Anticancéreux injectables,98384.58,0.8751,B
+ART-0020,Tramadol 100 mg,Antalgiques,97282.5,0.8853,B
+ART-0026,"NaCl 0,9 % 500 mL",Solutés de perfusion,86011.2,0.8944,B
+ART-0012,Vancomycine 500 mg,Antibiotiques,78699.53,0.9027,B
+ART-0032,Eau ppi 10 mL,Solutés de perfusion,78246.75,0.9109,B
+ART-0004,Oxaliplatine 100 mg,Anticancéreux injectables,76383.0,0.9189,B
+ART-0010,Ceftriaxone 1 g,Antibiotiques,76001.25,0.9269,B
+ART-0024,Ondansétron 8 mg,Antalgiques,75248.33,0.9348,B
+ART-0043,Complément oral HP/HC,Nutrition clinique,74113.2,0.9426,B
+ART-0019,Kétoprofène 100 mg,Antalgiques,60427.9,0.949,B
+ART-0022,Kétamine 50 mg,Antalgiques,59160.74,0.9552,C
+ART-0044,Nutrition entérale 500 mL,Nutrition clinique,55827.12,0.9611,C
+ART-0027,Glucose 5 % 500 mL,Solutés de perfusion,53121.31,0.9667,C
+ART-0048,Complément oral sans lactose,Nutrition clinique,49733.36,0.9719,C
+ART-0042,Nutrition parentérale 2 L,Nutrition clinique,48191.15,0.977,C
+ART-0023,Lidocaïne 1 %,Antalgiques,40384.08,0.9812,C
+ART-0037,Compresse stérile 10x10,Dispositifs médicaux stériles,38589.44,0.9853,C
+ART-0033,Cathéter périphérique 20G,Dispositifs médicaux stériles,32561.1,0.9887,C
+ART-0030,KCl 10 % 10 mL,Solutés de perfusion,30384.0,0.9919,C
+ART-0041,Nutrition parentérale 1 L,Nutrition clinique,28332.0,0.9949,C
+ART-0045,Émulsion lipidique 250 mL,Nutrition clinique,27456.0,0.9978,C
+ART-0018,Néfopam 20 mg,Antalgiques,14145.1,0.9992,C
+ART-0021,Morphine 10 mg,Antalgiques,7241.6,1.0,C

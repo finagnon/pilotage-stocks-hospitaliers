@@ -1,0 +1,49 @@
+code_article,libelle,categorie,fournisseur_id,stock_final,point_commande,conso_moy_jour,couverture_jours,valeur_stock_eur,valeur_excedent_30j_eur,jours_rupture_annee,taux_service,statut
+ART-0001,Cisplatine 50 mg,Anticancéreux injectables,FRN-01,52,47,1.51,34.4,58611.8,7514.33,0.0,1.0,Normal
+ART-0002,Carboplatine 450 mg,Anticancéreux injectables,FRN-02,4,44,3.64,1.1,591.64,0.0,16.0,0.9611,Sous le point de commande
+ART-0003,Paclitaxel 300 mg,Anticancéreux injectables,FRN-01,46,27,2.87,16.0,11970.12,0.0,0.0,1.0,Normal
+ART-0004,Oxaliplatine 100 mg,Anticancéreux injectables,FRN-02,20,16,1.12,17.8,3772.0,0.0,0.0,1.0,Normal
+ART-0005,Docétaxel 160 mg,Anticancéreux injectables,FRN-01,34,18,2.04,16.6,4840.92,0.0,0.0,1.0,Normal
+ART-0006,Gemcitabine 1 g,Anticancéreux injectables,FRN-02,17,18,1.32,12.9,3618.28,0.0,1.0,0.9979,Sous le point de commande
+ART-0007,Irinotécan 300 mg,Anticancéreux injectables,FRN-01,20,24,2.33,8.6,26586.2,0.0,0.0,1.0,Sous le point de commande
+ART-0008,Pembrolizumab 100 mg,Anticancéreux injectables,FRN-02,39,25,2.09,18.7,10267.53,0.0,11.0,0.9683,Normal
+ART-0009,Amoxicilline 1 g,Antibiotiques,FRN-03,181,90,30.93,5.9,5670.73,0.0,46.0,0.8948,Normal
+ART-0010,Ceftriaxone 1 g,Antibiotiques,FRN-03,485,354,14.02,34.6,7881.25,1045.42,0.0,1.0,Normal
+ART-0011,Pipéracilline-tazobactam 4 g,Antibiotiques,FRN-02,2149,678,23.33,92.1,86217.88,58133.88,0.0,1.0,Surstock (> 60 j)
+ART-0012,Vancomycine 500 mg,Antibiotiques,FRN-03,96,144,16.78,5.7,1323.84,0.0,0.0,1.0,Sous le point de commande
+ART-0013,Méropénem 1 g,Antibiotiques,FRN-02,211,246,20.1,10.5,3876.07,0.0,12.0,0.9676,Sous le point de commande
+ART-0014,Gentamicine 80 mg,Antibiotiques,FRN-03,228,112,12.63,18.0,13082.64,0.0,0.0,1.0,Normal
+ART-0015,Céfazoline 2 g,Antibiotiques,FRN-02,50,143,11.98,4.2,2289.5,0.0,0.0,1.0,Sous le point de commande
+ART-0016,Métronidazole 500 mg,Antibiotiques,FRN-03,134,40,13.34,10.0,3697.06,0.0,47.0,0.8794,Normal
+ART-0017,Paracétamol 1 g inj.,Antalgiques,FRN-01,814,347,96.28,8.5,5380.54,0.0,35.0,0.9233,Normal
+ART-0018,Néfopam 20 mg,Antalgiques,FRN-01,1363,540,55.02,24.8,1008.62,0.0,0.0,1.0,Normal
+ART-0019,Kétoprofène 100 mg,Antalgiques,FRN-01,1862,731,75.47,24.7,4375.7,0.0,0.0,1.0,Normal
+ART-0020,Tramadol 100 mg,Antalgiques,FRN-03,431,164,52.32,8.2,2198.1,0.0,52.0,0.882,Normal
+ART-0021,Morphine 10 mg,Antalgiques,FRN-03,1937,683,27.48,70.5,1549.6,890.13,0.0,1.0,Surstock (> 60 j)
+ART-0022,Kétamine 50 mg,Antalgiques,FRN-03,7820,2854,110.88,70.5,12277.4,7055.06,0.0,1.0,Surstock (> 60 j)
+ART-0023,Lidocaïne 1 %,Antalgiques,FRN-01,340,108,29.81,11.4,1346.4,0.0,43.0,0.9024,Normal
+ART-0024,Ondansétron 8 mg,Antalgiques,FRN-01,6208,1884,70.19,88.4,19431.04,12840.3,0.0,1.0,Surstock (> 60 j)
+ART-0025,"NaCl 0,9 % 100 mL",Solutés de perfusion,FRN-05,948,494,65.78,14.4,5147.64,0.0,0.0,1.0,Normal
+ART-0026,"NaCl 0,9 % 500 mL",Solutés de perfusion,FRN-05,1129,1148,152.54,7.4,1862.85,0.0,0.0,1.0,Sous le point de commande
+ART-0027,Glucose 5 % 500 mL,Solutés de perfusion,FRN-05,889,350,46.36,19.2,2995.93,0.0,0.0,1.0,Normal
+ART-0028,Ringer lactate 500 mL,Solutés de perfusion,FRN-05,1799,762,99.67,18.1,10614.1,0.0,0.0,1.0,Normal
+ART-0029,Glucose 10 % 250 mL,Solutés de perfusion,FRN-05,1641,1204,159.12,10.3,4414.29,0.0,0.0,1.0,Normal
+ART-0030,KCl 10 % 10 mL,Solutés de perfusion,FRN-05,1812,558,74.37,24.4,2174.4,0.0,0.0,1.0,Normal
+ART-0031,"Bicarbonate 1,4 % 500 mL",Solutés de perfusion,FRN-05,762,1262,166.61,4.6,3246.12,0.0,0.0,1.0,Sous le point de commande
+ART-0032,Eau ppi 10 mL,Solutés de perfusion,FRN-05,596,150,69.57,8.6,1925.08,0.0,34.0,0.9265,Normal
+ART-0033,Cathéter périphérique 20G,Dispositifs médicaux stériles,FRN-04,783,731,42.52,18.4,1620.81,0.0,19.0,0.9415,Normal
+ART-0034,Seringue 50 mL,Dispositifs médicaux stériles,FRN-04,757,583,38.99,19.4,24519.23,0.0,18.0,0.9544,Normal
+ART-0035,Prolongateur 3 voies,Dispositifs médicaux stériles,FRN-04,226,492,28.79,7.9,9760.94,0.0,25.0,0.9373,Sous le point de commande
+ART-0036,Aiguille Huber 20G,Dispositifs médicaux stériles,FRN-04,684,646,41.46,16.5,17619.84,0.0,22.0,0.9397,Normal
+ART-0037,Compresse stérile 10x10,Dispositifs médicaux stériles,FRN-04,922,686,42.74,21.6,2360.32,0.0,12.0,0.9716,Normal
+ART-0038,Perfuseur par gravité,Dispositifs médicaux stériles,FRN-04,926,801,49.26,18.8,72635.44,0.0,18.0,0.9498,Normal
+ART-0039,Gants stériles T7,Dispositifs médicaux stériles,FRN-04,565,679,40.92,13.8,8412.85,0.0,21.0,0.9562,Sous le point de commande
+ART-0040,Pansement transparent,Dispositifs médicaux stériles,FRN-04,1003,744,39.12,25.6,18866.43,0.0,52.0,0.8696,Normal
+ART-0041,Nutrition parentérale 1 L,Nutrition clinique,FRN-06,94,75,7.02,13.4,1128.0,0.0,0.0,1.0,Normal
+ART-0042,Nutrition parentérale 2 L,Nutrition clinique,FRN-06,951,460,15.97,59.6,8340.27,4139.44,0.0,1.0,Normal
+ART-0043,Complément oral HP/HC,Nutrition clinique,FRN-06,200,133,12.08,16.6,3570.0,0.0,0.0,1.0,Normal
+ART-0044,Nutrition entérale 500 mL,Nutrition clinique,FRN-06,49,67,5.98,8.2,1343.58,0.0,0.0,1.0,Sous le point de commande
+ART-0045,Émulsion lipidique 250 mL,Nutrition clinique,FRN-06,286,139,12.9,22.2,1784.64,0.0,0.0,1.0,Normal
+ART-0046,Oligo-éléments 10 mL,Nutrition clinique,FRN-06,590,290,25.91,22.8,18655.8,0.0,0.0,1.0,Normal
+ART-0047,Vitamines inj.,Nutrition clinique,FRN-06,190,220,19.92,9.5,4753.8,0.0,0.0,1.0,Sous le point de commande
+ART-0048,Complément oral sans lactose,Nutrition clinique,FRN-06,3,222,20.73,0.1,21.48,0.0,2.0,0.995,Sous le point de commande
