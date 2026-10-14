@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pilotage des stocks hospitaliers — Dashboard | Fiacre Yehossou</title>
+<meta name="description" content="Tableau de bord de pilotage des stocks d'une pharmacie hospitalière (données fictives) : valeur du stock, ruptures, couverture, classification ABC, fiabilité fournisseurs.">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #060b14; --surface: #0f192b; --surface-2: #13203a;
+    --text: #f8fafc; --text-2: #cbd5e1; --muted: #94a3b8;
+    --grid: rgba(255,255,255,0.07); --border: rgba(255,255,255,0.09);
+    --accent: #38bdf8;
+    --series-1: #3987e5; --series-2: #d95926;
+    --good: #0ca30c; --serious: #ec835a; --critical: #d03b3b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; line-height: 1.5; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { width: min(1240px, calc(100% - 32px)); margin: 0 auto; }
+  header { padding: 28px 0 8px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: .9rem; }
+  .topbar .links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; font-size: .85rem; }
+  .btn:hover { border-color: var(--accent); text-decoration: none; }
+  .kicker { display: inline-block; margin-top: 26px; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.7rem, 3.4vw, 2.5rem); line-height: 1.15; margin: 6px 0 10px; }
+  .lead { color: var(--text-2); max-width: 860px; }
+  .notice { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: rgba(56,189,248,.07); border: 1px solid rgba(56,189,248,.25); color: var(--text-2); font-size: .88rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 18px; align-items: center; }
+  .filters span { color: var(--muted); font-size: .85rem; margin-right: 4px; }
+  .chip { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: .83rem; font-weight: 600; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: #06111f; border-color: var(--accent); }
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+  .tile .lbl { color: var(--muted); font-size: .78rem; font-weight: 600; min-height: 2.4em; }
+  .tile .val { font-family: 'Space Grotesk', sans-serif; font-size: 1.65rem; font-weight: 700; margin-top: 4px; }
+  .tile .sub { color: var(--muted); font-size: .76rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 12px; position: relative; }
+  .card h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; }
+  .card .desc { color: var(--muted); font-size: .8rem; margin-bottom: 8px; }
+  .legend { display: flex; gap: 16px; font-size: .8rem; color: var(--text-2); margin-bottom: 4px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .axis text, .lab { fill: var(--muted); font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .lab-strong { fill: var(--text); font-size: 11px; font-weight: 700; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .tip { position: fixed; pointer-events: none; background: #0b1424; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 8px 10px; font-size: .8rem; color: var(--text); box-shadow: 0 8px 24px rgba(0,0,0,.45); opacity: 0; transition: opacity .12s; z-index: 10; max-width: 260px; }
+  .tip b { font-weight: 700; }
+  .tablecard { margin-top: 16px; }
+  .tablehead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 720px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text); }
+  .status .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .method { margin: 18px 0 40px; color: var(--muted); font-size: .84rem; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .method h3 { color: var(--text); font-size: .95rem; margin-bottom: 6px; font-family: 'Space Grotesk', sans-serif; }
+  .method ul { padding-left: 18px; }
+  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 860px) { .grid, .method { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .kpis { grid-template-columns: repeat(2, 1fr); } .tile .val { font-size: 1.35rem; } }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="topbar">
+    <a href="https://portfolio-fiacre-yehossou.vercel.app/#projets">← Portfolio de Fiacre Yehossou</a>
+    <div class="links">
+      <a class="btn" href="https://github.com/finagnon/pilotage-stocks-hospitaliers" target="_blank" rel="noopener noreferrer">Code sur GitHub ↗</a>
+    </div>
+  </div>
+  <span class="kicker">Projet data • Supply chain hospitalière</span>
+  <h1>Pilotage des stocks d'une pharmacie hospitalière</h1>
+  <p class="lead">Suivi de 48 références (anticancéreux, antibiotiques, solutés, dispositifs médicaux…) sur une année :
+    valeur du stock, ruptures, couverture en jours, classification ABC et fiabilité des délais fournisseurs.
+    Indicateurs calculés en SQL (DuckDB) et Python.</p>
+  <p class="notice">🔒 <b>Données 100 % fictives, générées par simulation.</b> Aucune donnée patient, aucune donnée de santé
+    ni aucune donnée personnelle (RGPD) : uniquement des articles, des fournisseurs fictifs et des quantités agrégées par jour.</p>
+</header>
+
+<main class="wrap">
+  <div class="filters" role="group" aria-label="Filtrer par catégorie" id="filters"><span>Catégorie :</span></div>
+
+  <section class="kpis" id="kpis" aria-label="Indicateurs clés"></section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Valeur du stock en fin de mois</h2>
+      <p class="desc">En euros, au dernier jour de chaque mois de 2025.</p>
+      <div id="chart-valeur"></div>
+    </div>
+    <div class="card">
+      <h2>Jours-articles en rupture</h2>
+      <p class="desc">Part des jours où la demande d'un article n'a pas pu être servie en totalité.</p>
+      <div id="chart-rupture"></div>
+    </div>
+    <div class="card">
+      <h2>Classification ABC (Pareto)</h2>
+      <p class="desc">Part de la valeur consommée par classe — A : 80 % de la valeur, B : 15 %, C : 5 %.</p>
+      <div id="chart-abc"></div>
+    </div>
+    <div class="card">
+      <h2>Délais fournisseurs : prévu vs réel</h2>
+      <p class="desc">Délai moyen de livraison en jours, commandes réceptionnées.</p>
+      <div class="legend"><span><i style="background:var(--series-1)"></i>Délai prévu</span><span><i style="background:var(--series-2)"></i>Délai réel</span></div>
+      <div id="chart-frn"></div>
+    </div>
+  </section>
+
+  <section class="card tablecard">
+    <div class="tablehead">
+      <div>
+        <h2>Articles à surveiller au 31/12/2025</h2>
+        <p class="desc" style="margin:0">Sous le point de commande (risque de rupture) ou en surstock (couverture &gt; 60 jours).</p>
+      </div>
+      <button class="chip" id="toggleAll" aria-pressed="false">Afficher tous les articles</button>
+    </div>
+    <div class="tablewrap"><table id="table"><thead><tr>
+      <th>Article</th><th>Catégorie</th><th>ABC</th><th class="num">Stock</th><th class="num">Point de cde</th>
+      <th class="num">Couverture (j)</th><th class="num">Valeur (€)</th><th>Statut</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="method">
+    <div>
+      <h3>Méthode</h3>
+      <ul>
+        <li>Simulation d'une politique de réapprovisionnement (point de commande, quantité fixe) avec des délais fournisseurs aléatoires.</li>
+        <li>Indicateurs calculés en SQL (DuckDB) : valeur de stock, taux de service, ruptures, couverture sur 90 jours, Pareto ABC.</li>
+        <li>Couverture cible : 30 jours. L'excédent au-delà est valorisé comme trésorerie immobilisée.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Lecture et pistes d'action</h3>
+      <ul id="insights"></ul>
+    </div>
+  </section>
+</main>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = {"periode": "Année 2025", "categories": ["Antalgiques", "Antibiotiques", "Anticancéreux injectables", "Dispositifs médicaux stériles", "Nutrition clinique", "Solutés de perfusion"], "scopes": {"Toutes": {"kpis": {"valeur_stock": 519639.0, "taux_service": 0.974, "taux_rupture": 0.0277, "couverture_mediane": 16.6, "nb_articles": 48, "nb_sous_point_commande": 13, "nb_surstock": 4, "valeur_excedent_30j": 91619.0}, "mensuel": [{"mois": "2025-01", "valeur_stock": 596969.0, "taux_rupture": 0.0195, "taux_service": 0.9826}, {"mois": "2025-02", "valeur_stock": 499779.0, "taux_rupture": 0.0491, "taux_service": 0.9511}, {"mois": "2025-03", "valeur_stock": 545813.0, "taux_rupture": 0.0349, "taux_service": 0.9684}, {"mois": "2025-04", "valeur_stock": 534177.0, "taux_rupture": 0.0264, "taux_service": 0.9771}, {"mois": "2025-05", "valeur_stock": 517316.0, "taux_rupture": 0.0269, "taux_service": 0.9753}, {"mois": "2025-06", "valeur_stock": 511558.0, "taux_rupture": 0.0111, "taux_service": 0.9904}, {"mois": "2025-07", "valeur_stock": 666841.0, "taux_rupture": 0.0222, "taux_service": 0.981}, {"mois": "2025-08", "valeur_stock": 519367.0, "taux_rupture": 0.0155, "taux_service": 0.9814}, {"mois": "2025-09", "valeur_stock": 478459.0, "taux_rupture": 0.0139, "taux_service": 0.9888}, {"mois": "2025-10", "valeur_stock": 588844.0, "taux_rupture": 0.0296, "taux_service": 0.974}, {"mois": "2025-11", "valeur_stock": 551629.0, "taux_rupture": 0.0292, "taux_service": 0.9737}, {"mois": "2025-12", "valeur_stock": 519639.0, "taux_rupture": 0.0558, "taux_service": 0.9531}], "abc": [{"classe": "A", "nb_articles": 20, "part_valeur": 0.7997}, {"classe": "B", "nb_articles": 15, "part_valeur": 0.1493}, {"classe": "C", "nb_articles": 13, "part_valeur": 0.051}], "fournisseurs": [{"id": "FRN-01", "nom": "Laboratoire Alpha (fictif)", "nb_commandes": 121, "delai_prevu": 5.0, "delai_reel": 5.3, "taux_retard": 0.2728}, {"id": "FRN-02", "nom": "Pharma Bêta (fictif)", "nb_commandes": 88, "delai_prevu": 7.0, "delai_reel": 10.1, "taux_retard": 0.8523}, {"id": "FRN-03", "nom": "Medica Gamma (fictif)", "nb_commandes": 98, "delai_prevu": 4.0, "delai_reel": 4.8, "taux_retard": 0.5306}, {"id": "FRN-04", "nom": "Dispomed Delta (fictif)", "nb_commandes": 109, "delai_prevu": 10.0, "delai_reel": 15.3, "taux_retard": 0.8716}, {"id": "FRN-05", "nom": "Solutés Epsilon (fictif)", "nb_commandes": 121, "delai_prevu": 3.0, "delai_reel": 3.2, "taux_retard": 0.1901}, {"id": "FRN-06", "nom": "Nutri Zêta (fictif)", "nb_commandes": 103, "delai_prevu": 6.0, "delai_reel": 7.8, "taux_retard": 0.7476}]}, "Anticancéreux injectables": {"kpis": {"valeur_stock": 120258.0, "taux_service": 0.987, "taux_rupture": 0.0096, "couverture_mediane": 16.3, "nb_articles": 8, "nb_sous_point_commande": 3, "nb_surstock": 0, "valeur_excedent_30j": 7514.0}, "mensuel": [{"mois": "2025-01", "valeur_stock": 235741.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-02", "valeur_stock": 174159.0, "taux_rupture": 0.0089, "taux_service": 0.982}, {"mois": "2025-03", "valeur_stock": 178695.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-04", "valeur_stock": 241980.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-05", "valeur_stock": 178234.0, "taux_rupture": 0.0202, "taux_service": 0.9719}, {"mois": "2025-06", "valeur_stock": 149451.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-07", "valeur_stock": 241925.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-08", "valeur_stock": 196179.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-09", "valeur_stock": 128862.0, "taux_rupture": 0.0042, "taux_service": 0.9978}, {"mois": "2025-10", "valeur_stock": 269540.0, "taux_rupture": 0.0202, "taux_service": 0.9691}, {"mois": "2025-11", "valeur_stock": 204792.0, "taux_rupture": 0.0167, "taux_service": 0.9714}, {"mois": "2025-12", "valeur_stock": 120258.0, "taux_rupture": 0.0444, "taux_service": 0.9599}], "abc": [{"classe": "A", "nb_articles": 5, "part_valeur": 0.8937}, {"classe": "B", "nb_articles": 3, "part_valeur": 0.1063}, {"classe": "C", "nb_articles": 0, "part_valeur": 0.0}], "fournisseurs": [{"id": "FRN-01", "nom": "Laboratoire Alpha (fictif)", "nb_commandes": 47, "delai_prevu": 5.0, "delai_reel": 5.3, "taux_retard": 0.2979}, {"id": "FRN-02", "nom": "Pharma Bêta (fictif)", "nb_commandes": 56, "delai_prevu": 7.0, "delai_reel": 9.9, "taux_retard": 0.8214}]}, "Antibiotiques": {"kpis": {"valeur_stock": 124039.0, "taux_service": 0.9587, "taux_rupture": 0.036, "couverture_mediane": 10.2, "nb_articles": 8, "nb_sous_point_commande": 3, "nb_surstock": 1, "valeur_excedent_30j": 59179.0}, "mensuel": [{"mois": "2025-01", "valeur_stock": 110272.0, "taux_rupture": 0.0444, "taux_service": 0.9465}, {"mois": "2025-02", "valeur_stock": 99268.0, "taux_rupture": 0.0491, "taux_service": 0.943}, {"mois": "2025-03", "valeur_stock": 145855.0, "taux_rupture": 0.0323, "taux_service": 0.97}, {"mois": "2025-04", "valeur_stock": 123767.0, "taux_rupture": 0.0625, "taux_service": 0.9362}, {"mois": "2025-05", "valeur_stock": 95189.0, "taux_rupture": 0.0242, "taux_service": 0.9663}, {"mois": "2025-06", "valeur_stock": 55943.0, "taux_rupture": 0.0083, "taux_service": 0.9909}, {"mois": "2025-07", "valeur_stock": 136915.0, "taux_rupture": 0.0323, "taux_service": 0.9627}, {"mois": "2025-08", "valeur_stock": 97418.0, "taux_rupture": 0.0202, "taux_service": 0.9825}, {"mois": "2025-09", "valeur_stock": 71709.0, "taux_rupture": 0.0417, "taux_service": 0.9529}, {"mois": "2025-10", "valeur_stock": 126679.0, "taux_rupture": 0.0202, "taux_service": 0.9804}, {"mois": "2025-11", "valeur_stock": 86260.0, "taux_rupture": 0.025, "taux_service": 0.9803}, {"mois": "2025-12", "valeur_stock": 124039.0, "taux_rupture": 0.0726, "taux_service": 0.9119}], "abc": [{"classe": "A", "nb_articles": 4, "part_valeur": 0.7283}, {"classe": "B", "nb_articles": 4, "part_valeur": 0.2717}, {"classe": "C", "nb_articles": 0, "part_valeur": 0.0}], "fournisseurs": [{"id": "FRN-02", "nom": "Pharma Bêta (fictif)", "nb_commandes": 32, "delai_prevu": 7.0, "delai_reel": 10.4, "taux_retard": 0.9063}, {"id": "FRN-03", "nom": "Medica Gamma (fictif)", "nb_commandes": 71, "delai_prevu": 4.0, "delai_reel": 4.8, "taux_retard": 0.5352}]}, "Antalgiques": {"kpis": {"valeur_stock": 47567.0, "taux_service": 0.9651, "taux_rupture": 0.0445, "couverture_mediane": 24.8, "nb_articles": 8, "nb_sous_point_commande": 0, "nb_surstock": 3, "valeur_excedent_30j": 20785.0}, "mensuel": [{"mois": "2025-01", "valeur_stock": 34986.0, "taux_rupture": 0.0444, "taux_service": 0.9667}, {"mois": "2025-02", "valeur_stock": 26875.0, "taux_rupture": 0.0625, "taux_service": 0.9488}, {"mois": "2025-03", "valeur_stock": 49178.0, "taux_rupture": 0.0685, "taux_service": 0.9552}, {"mois": "2025-04", "valeur_stock": 39018.0, "taux_rupture": 0.0333, "taux_service": 0.9724}, {"mois": "2025-05", "valeur_stock": 35592.0, "taux_rupture": 0.0444, "taux_service": 0.9711}, {"mois": "2025-06", "valeur_stock": 48012.0, "taux_rupture": 0.0167, "taux_service": 0.9926}, {"mois": "2025-07", "valeur_stock": 31867.0, "taux_rupture": 0.0242, "taux_service": 0.985}, {"mois": "2025-08", "valeur_stock": 25649.0, "taux_rupture": 0.0363, "taux_service": 0.9579}, {"mois": "2025-09", "valeur_stock": 46751.0, "taux_rupture": 0.0333, "taux_service": 0.9729}, {"mois": "2025-10", "valeur_stock": 37255.0, "taux_rupture": 0.0484, "taux_service": 0.9646}, {"mois": "2025-11", "valeur_stock": 24029.0, "taux_rupture": 0.0542, "taux_service": 0.9582}, {"mois": "2025-12", "valeur_stock": 47567.0, "taux_rupture": 0.0685, "taux_service": 0.9474}], "abc": [{"classe": "A", "nb_articles": 1, "part_valeur": 0.3865}, {"classe": "B", "nb_articles": 3, "part_valeur": 0.4039}, {"classe": "C", "nb_articles": 4, "part_valeur": 0.2097}], "fournisseurs": [{"id": "FRN-01", "nom": "Laboratoire Alpha (fictif)", "nb_commandes": 74, "delai_prevu": 5.0, "delai_reel": 5.3, "taux_retard": 0.2568}, {"id": "FRN-03", "nom": "Medica Gamma (fictif)", "nb_commandes": 27, "delai_prevu": 4.0, "delai_reel": 4.8, "taux_retard": 0.5185}]}, "Solutés de perfusion": {"kpis": {"valeur_stock": 32380.0, "taux_service": 0.9933, "taux_rupture": 0.0116, "couverture_mediane": 12.4, "nb_articles": 8, "nb_sous_point_commande": 2, "nb_surstock": 0, "valeur_excedent_30j": 0.0}, "mensuel": [{"mois": "2025-01", "valeur_stock": 40657.0, "taux_rupture": 0.0081, "taux_service": 0.9951}, {"mois": "2025-02", "valeur_stock": 45043.0, "taux_rupture": 0.0134, "taux_service": 0.9913}, {"mois": "2025-03", "valeur_stock": 30653.0, "taux_rupture": 0.0161, "taux_service": 0.9921}, {"mois": "2025-04", "valeur_stock": 36044.0, "taux_rupture": 0.0167, "taux_service": 0.9903}, {"mois": "2025-05", "valeur_stock": 35726.0, "taux_rupture": 0.004, "taux_service": 0.9982}, {"mois": "2025-06", "valeur_stock": 54388.0, "taux_rupture": 0.0125, "taux_service": 0.9949}, {"mois": "2025-07", "valeur_stock": 49361.0, "taux_rupture": 0.0081, "taux_service": 0.9951}, {"mois": "2025-08", "valeur_stock": 45121.0, "taux_rupture": 0.0202, "taux_service": 0.9886}, {"mois": "2025-09", "valeur_stock": 33880.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-10", "valeur_stock": 37798.0, "taux_rupture": 0.0081, "taux_service": 0.9962}, {"mois": "2025-11", "valeur_stock": 39513.0, "taux_rupture": 0.0167, "taux_service": 0.9896}, {"mois": "2025-12", "valeur_stock": 32380.0, "taux_rupture": 0.0161, "taux_service": 0.9895}], "abc": [{"classe": "A", "nb_articles": 2, "part_valeur": 0.4637}, {"classe": "B", "nb_articles": 4, "part_valeur": 0.4496}, {"classe": "C", "nb_articles": 2, "part_valeur": 0.0868}], "fournisseurs": [{"id": "FRN-05", "nom": "Solutés Epsilon (fictif)", "nb_commandes": 121, "delai_prevu": 3.0, "delai_reel": 3.2, "taux_retard": 0.1901}]}, "Dispositifs médicaux stériles": {"kpis": {"valeur_stock": 155796.0, "taux_service": 0.9392, "taux_rupture": 0.064, "couverture_mediane": 18.6, "nb_articles": 8, "nb_sous_point_commande": 2, "nb_surstock": 0, "valeur_excedent_30j": 0.0}, "mensuel": [{"mois": "2025-01", "valeur_stock": 144181.0, "taux_rupture": 0.0161, "taux_service": 0.987}, {"mois": "2025-02", "valeur_stock": 104616.0, "taux_rupture": 0.1607, "taux_service": 0.8443}, {"mois": "2025-03", "valeur_stock": 104379.0, "taux_rupture": 0.0887, "taux_service": 0.9222}, {"mois": "2025-04", "valeur_stock": 59124.0, "taux_rupture": 0.0458, "taux_service": 0.9614}, {"mois": "2025-05", "valeur_stock": 137135.0, "taux_rupture": 0.0685, "taux_service": 0.9238}, {"mois": "2025-06", "valeur_stock": 174530.0, "taux_rupture": 0.0292, "taux_service": 0.9727}, {"mois": "2025-07", "valeur_stock": 161596.0, "taux_rupture": 0.0685, "taux_service": 0.9424}, {"mois": "2025-08", "valeur_stock": 104690.0, "taux_rupture": 0.0161, "taux_service": 0.9923}, {"mois": "2025-09", "valeur_stock": 157310.0, "taux_rupture": 0.0042, "taux_service": 0.997}, {"mois": "2025-10", "valeur_stock": 87303.0, "taux_rupture": 0.0806, "taux_service": 0.9239}, {"mois": "2025-11", "valeur_stock": 159658.0, "taux_rupture": 0.0625, "taux_service": 0.9481}, {"mois": "2025-12", "valeur_stock": 155796.0, "taux_rupture": 0.1331, "taux_service": 0.8774}], "abc": [{"classe": "A", "nb_articles": 6, "part_valeur": 0.9774}, {"classe": "B", "nb_articles": 0, "part_valeur": 0.0}, {"classe": "C", "nb_articles": 2, "part_valeur": 0.0226}], "fournisseurs": [{"id": "FRN-04", "nom": "Dispomed Delta (fictif)", "nb_commandes": 109, "delai_prevu": 10.0, "delai_reel": 15.3, "taux_retard": 0.8716}]}, "Nutrition clinique": {"kpis": {"valeur_stock": 39598.0, "taux_service": 0.9992, "taux_rupture": 0.0007, "couverture_mediane": 15.0, "nb_articles": 8, "nb_sous_point_commande": 3, "nb_surstock": 0, "valeur_excedent_30j": 4139.0}, "mensuel": [{"mois": "2025-01", "valeur_stock": 31133.0, "taux_rupture": 0.004, "taux_service": 0.9963}, {"mois": "2025-02", "valeur_stock": 49818.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-03", "valeur_stock": 37053.0, "taux_rupture": 0.004, "taux_service": 0.9947}, {"mois": "2025-04", "valeur_stock": 34243.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-05", "valeur_stock": 35441.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-06", "valeur_stock": 29234.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-07", "valeur_stock": 45177.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-08", "valeur_stock": 50310.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-09", "valeur_stock": 39948.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-10", "valeur_stock": 30269.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-11", "valeur_stock": 37378.0, "taux_rupture": 0.0, "taux_service": 1.0}, {"mois": "2025-12", "valeur_stock": 39598.0, "taux_rupture": 0.0, "taux_service": 1.0}], "abc": [{"classe": "A", "nb_articles": 2, "part_valeur": 0.6189}, {"classe": "B", "nb_articles": 1, "part_valeur": 0.0996}, {"classe": "C", "nb_articles": 5, "part_valeur": 0.2815}], "fournisseurs": [{"id": "FRN-06", "nom": "Nutri Zêta (fictif)", "nb_commandes": 103, "delai_prevu": 6.0, "delai_reel": 7.8, "taux_retard": 0.7476}]}}, "articles": [{"code_article": "ART-0001", "libelle": "Cisplatine 50 mg", "categorie": "Anticancéreux injectables", "fournisseur_id": "FRN-01", "stock_final": 52, "point_commande": 47, "conso_moy_jour": 1.51, "couverture_jours": 34.4, "valeur_stock_eur": 58611.8, "valeur_excedent_30j_eur": 7514.33, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0002", "libelle": "Carboplatine 450 mg", "categorie": "Anticancéreux injectables", "fournisseur_id": "FRN-02", "stock_final": 4, "point_commande": 44, "conso_moy_jour": 3.64, "couverture_jours": 1.1, "valeur_stock_eur": 591.64, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 16.0, "taux_service": 0.9611, "statut": "Sous le point de commande", "classe_abc": "A"}, {"code_article": "ART-0003", "libelle": "Paclitaxel 300 mg", "categorie": "Anticancéreux injectables", "fournisseur_id": "FRN-01", "stock_final": 46, "point_commande": 27, "conso_moy_jour": 2.87, "couverture_jours": 16.0, "valeur_stock_eur": 11970.12, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0004", "libelle": "Oxaliplatine 100 mg", "categorie": "Anticancéreux injectables", "fournisseur_id": "FRN-02", "stock_final": 20, "point_commande": 16, "conso_moy_jour": 1.12, "couverture_jours": 17.8, "valeur_stock_eur": 3772.0, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0005", "libelle": "Docétaxel 160 mg", "categorie": "Anticancéreux injectables", "fournisseur_id": "FRN-01", "stock_final": 34, "point_commande": 18, "conso_moy_jour": 2.04, "couverture_jours": 16.6, "valeur_stock_eur": 4840.92, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0006", "libelle": "Gemcitabine 1 g", "categorie": "Anticancéreux injectables", "fournisseur_id": "FRN-02", "stock_final": 17, "point_commande": 18, "conso_moy_jour": 1.32, "couverture_jours": 12.9, "valeur_stock_eur": 3618.28, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 1.0, "taux_service": 0.9979, "statut": "Sous le point de commande", "classe_abc": "B"}, {"code_article": "ART-0007", "libelle": "Irinotécan 300 mg", "categorie": "Anticancéreux injectables", "fournisseur_id": "FRN-01", "stock_final": 20, "point_commande": 24, "conso_moy_jour": 2.33, "couverture_jours": 8.6, "valeur_stock_eur": 26586.2, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Sous le point de commande", "classe_abc": "A"}, {"code_article": "ART-0008", "libelle": "Pembrolizumab 100 mg", "categorie": "Anticancéreux injectables", "fournisseur_id": "FRN-02", "stock_final": 39, "point_commande": 25, "conso_moy_jour": 2.09, "couverture_jours": 18.7, "valeur_stock_eur": 10267.53, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 11.0, "taux_service": 0.9683, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0009", "libelle": "Amoxicilline 1 g", "categorie": "Antibiotiques", "fournisseur_id": "FRN-03", "stock_final": 181, "point_commande": 90, "conso_moy_jour": 30.93, "couverture_jours": 5.9, "valeur_stock_eur": 5670.73, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 46.0, "taux_service": 0.8948, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0010", "libelle": "Ceftriaxone 1 g", "categorie": "Antibiotiques", "fournisseur_id": "FRN-03", "stock_final": 485, "point_commande": 354, "conso_moy_jour": 14.02, "couverture_jours": 34.6, "valeur_stock_eur": 7881.25, "valeur_excedent_30j_eur": 1045.42, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0011", "libelle": "Pipéracilline-tazobactam 4 g", "categorie": "Antibiotiques", "fournisseur_id": "FRN-02", "stock_final": 2149, "point_commande": 678, "conso_moy_jour": 23.33, "couverture_jours": 92.1, "valeur_stock_eur": 86217.88, "valeur_excedent_30j_eur": 58133.88, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Surstock (> 60 j)", "classe_abc": "A"}, {"code_article": "ART-0012", "libelle": "Vancomycine 500 mg", "categorie": "Antibiotiques", "fournisseur_id": "FRN-03", "stock_final": 96, "point_commande": 144, "conso_moy_jour": 16.78, "couverture_jours": 5.7, "valeur_stock_eur": 1323.84, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Sous le point de commande", "classe_abc": "B"}, {"code_article": "ART-0013", "libelle": "Méropénem 1 g", "categorie": "Antibiotiques", "fournisseur_id": "FRN-02", "stock_final": 211, "point_commande": 246, "conso_moy_jour": 20.1, "couverture_jours": 10.5, "valeur_stock_eur": 3876.07, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 12.0, "taux_service": 0.9676, "statut": "Sous le point de commande", "classe_abc": "B"}, {"code_article": "ART-0014", "libelle": "Gentamicine 80 mg", "categorie": "Antibiotiques", "fournisseur_id": "FRN-03", "stock_final": 228, "point_commande": 112, "conso_moy_jour": 12.63, "couverture_jours": 18.0, "valeur_stock_eur": 13082.64, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0015", "libelle": "Céfazoline 2 g", "categorie": "Antibiotiques", "fournisseur_id": "FRN-02", "stock_final": 50, "point_commande": 143, "conso_moy_jour": 11.98, "couverture_jours": 4.2, "valeur_stock_eur": 2289.5, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Sous le point de commande", "classe_abc": "A"}, {"code_article": "ART-0016", "libelle": "Métronidazole 500 mg", "categorie": "Antibiotiques", "fournisseur_id": "FRN-03", "stock_final": 134, "point_commande": 40, "conso_moy_jour": 13.34, "couverture_jours": 10.0, "valeur_stock_eur": 3697.06, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 47.0, "taux_service": 0.8794, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0017", "libelle": "Paracétamol 1 g inj.", "categorie": "Antalgiques", "fournisseur_id": "FRN-01", "stock_final": 814, "point_commande": 347, "conso_moy_jour": 96.28, "couverture_jours": 8.5, "valeur_stock_eur": 5380.54, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 35.0, "taux_service": 0.9233, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0018", "libelle": "Néfopam 20 mg", "categorie": "Antalgiques", "fournisseur_id": "FRN-01", "stock_final": 1363, "point_commande": 540, "conso_moy_jour": 55.02, "couverture_jours": 24.8, "valeur_stock_eur": 1008.62, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0019", "libelle": "Kétoprofène 100 mg", "categorie": "Antalgiques", "fournisseur_id": "FRN-01", "stock_final": 1862, "point_commande": 731, "conso_moy_jour": 75.47, "couverture_jours": 24.7, "valeur_stock_eur": 4375.7, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0020", "libelle": "Tramadol 100 mg", "categorie": "Antalgiques", "fournisseur_id": "FRN-03", "stock_final": 431, "point_commande": 164, "conso_moy_jour": 52.32, "couverture_jours": 8.2, "valeur_stock_eur": 2198.1, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 52.0, "taux_service": 0.882, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0021", "libelle": "Morphine 10 mg", "categorie": "Antalgiques", "fournisseur_id": "FRN-03", "stock_final": 1937, "point_commande": 683, "conso_moy_jour": 27.48, "couverture_jours": 70.5, "valeur_stock_eur": 1549.6, "valeur_excedent_30j_eur": 890.13, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Surstock (> 60 j)", "classe_abc": "C"}, {"code_article": "ART-0022", "libelle": "Kétamine 50 mg", "categorie": "Antalgiques", "fournisseur_id": "FRN-03", "stock_final": 7820, "point_commande": 2854, "conso_moy_jour": 110.88, "couverture_jours": 70.5, "valeur_stock_eur": 12277.4, "valeur_excedent_30j_eur": 7055.06, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Surstock (> 60 j)", "classe_abc": "C"}, {"code_article": "ART-0023", "libelle": "Lidocaïne 1 %", "categorie": "Antalgiques", "fournisseur_id": "FRN-01", "stock_final": 340, "point_commande": 108, "conso_moy_jour": 29.81, "couverture_jours": 11.4, "valeur_stock_eur": 1346.4, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 43.0, "taux_service": 0.9024, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0024", "libelle": "Ondansétron 8 mg", "categorie": "Antalgiques", "fournisseur_id": "FRN-01", "stock_final": 6208, "point_commande": 1884, "conso_moy_jour": 70.19, "couverture_jours": 88.4, "valeur_stock_eur": 19431.04, "valeur_excedent_30j_eur": 12840.3, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Surstock (> 60 j)", "classe_abc": "B"}, {"code_article": "ART-0025", "libelle": "NaCl 0,9 % 100 mL", "categorie": "Solutés de perfusion", "fournisseur_id": "FRN-05", "stock_final": 948, "point_commande": 494, "conso_moy_jour": 65.78, "couverture_jours": 14.4, "valeur_stock_eur": 5147.64, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0026", "libelle": "NaCl 0,9 % 500 mL", "categorie": "Solutés de perfusion", "fournisseur_id": "FRN-05", "stock_final": 1129, "point_commande": 1148, "conso_moy_jour": 152.54, "couverture_jours": 7.4, "valeur_stock_eur": 1862.85, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Sous le point de commande", "classe_abc": "B"}, {"code_article": "ART-0027", "libelle": "Glucose 5 % 500 mL", "categorie": "Solutés de perfusion", "fournisseur_id": "FRN-05", "stock_final": 889, "point_commande": 350, "conso_moy_jour": 46.36, "couverture_jours": 19.2, "valeur_stock_eur": 2995.93, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0028", "libelle": "Ringer lactate 500 mL", "categorie": "Solutés de perfusion", "fournisseur_id": "FRN-05", "stock_final": 1799, "point_commande": 762, "conso_moy_jour": 99.67, "couverture_jours": 18.1, "valeur_stock_eur": 10614.1, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0029", "libelle": "Glucose 10 % 250 mL", "categorie": "Solutés de perfusion", "fournisseur_id": "FRN-05", "stock_final": 1641, "point_commande": 1204, "conso_moy_jour": 159.12, "couverture_jours": 10.3, "valeur_stock_eur": 4414.29, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0030", "libelle": "KCl 10 % 10 mL", "categorie": "Solutés de perfusion", "fournisseur_id": "FRN-05", "stock_final": 1812, "point_commande": 558, "conso_moy_jour": 74.37, "couverture_jours": 24.4, "valeur_stock_eur": 2174.4, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0031", "libelle": "Bicarbonate 1,4 % 500 mL", "categorie": "Solutés de perfusion", "fournisseur_id": "FRN-05", "stock_final": 762, "point_commande": 1262, "conso_moy_jour": 166.61, "couverture_jours": 4.6, "valeur_stock_eur": 3246.12, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Sous le point de commande", "classe_abc": "A"}, {"code_article": "ART-0032", "libelle": "Eau ppi 10 mL", "categorie": "Solutés de perfusion", "fournisseur_id": "FRN-05", "stock_final": 596, "point_commande": 150, "conso_moy_jour": 69.57, "couverture_jours": 8.6, "valeur_stock_eur": 1925.08, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 34.0, "taux_service": 0.9265, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0033", "libelle": "Cathéter périphérique 20G", "categorie": "Dispositifs médicaux stériles", "fournisseur_id": "FRN-04", "stock_final": 783, "point_commande": 731, "conso_moy_jour": 42.52, "couverture_jours": 18.4, "valeur_stock_eur": 1620.81, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 19.0, "taux_service": 0.9415, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0034", "libelle": "Seringue 50 mL", "categorie": "Dispositifs médicaux stériles", "fournisseur_id": "FRN-04", "stock_final": 757, "point_commande": 583, "conso_moy_jour": 38.99, "couverture_jours": 19.4, "valeur_stock_eur": 24519.23, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 18.0, "taux_service": 0.9544, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0035", "libelle": "Prolongateur 3 voies", "categorie": "Dispositifs médicaux stériles", "fournisseur_id": "FRN-04", "stock_final": 226, "point_commande": 492, "conso_moy_jour": 28.79, "couverture_jours": 7.9, "valeur_stock_eur": 9760.94, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 25.0, "taux_service": 0.9373, "statut": "Sous le point de commande", "classe_abc": "A"}, {"code_article": "ART-0036", "libelle": "Aiguille Huber 20G", "categorie": "Dispositifs médicaux stériles", "fournisseur_id": "FRN-04", "stock_final": 684, "point_commande": 646, "conso_moy_jour": 41.46, "couverture_jours": 16.5, "valeur_stock_eur": 17619.84, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 22.0, "taux_service": 0.9397, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0037", "libelle": "Compresse stérile 10x10", "categorie": "Dispositifs médicaux stériles", "fournisseur_id": "FRN-04", "stock_final": 922, "point_commande": 686, "conso_moy_jour": 42.74, "couverture_jours": 21.6, "valeur_stock_eur": 2360.32, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 12.0, "taux_service": 0.9716, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0038", "libelle": "Perfuseur par gravité", "categorie": "Dispositifs médicaux stériles", "fournisseur_id": "FRN-04", "stock_final": 926, "point_commande": 801, "conso_moy_jour": 49.26, "couverture_jours": 18.8, "valeur_stock_eur": 72635.44, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 18.0, "taux_service": 0.9498, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0039", "libelle": "Gants stériles T7", "categorie": "Dispositifs médicaux stériles", "fournisseur_id": "FRN-04", "stock_final": 565, "point_commande": 679, "conso_moy_jour": 40.92, "couverture_jours": 13.8, "valeur_stock_eur": 8412.85, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 21.0, "taux_service": 0.9562, "statut": "Sous le point de commande", "classe_abc": "A"}, {"code_article": "ART-0040", "libelle": "Pansement transparent", "categorie": "Dispositifs médicaux stériles", "fournisseur_id": "FRN-04", "stock_final": 1003, "point_commande": 744, "conso_moy_jour": 39.12, "couverture_jours": 25.6, "valeur_stock_eur": 18866.43, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 52.0, "taux_service": 0.8696, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0041", "libelle": "Nutrition parentérale 1 L", "categorie": "Nutrition clinique", "fournisseur_id": "FRN-06", "stock_final": 94, "point_commande": 75, "conso_moy_jour": 7.02, "couverture_jours": 13.4, "valeur_stock_eur": 1128.0, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0042", "libelle": "Nutrition parentérale 2 L", "categorie": "Nutrition clinique", "fournisseur_id": "FRN-06", "stock_final": 951, "point_commande": 460, "conso_moy_jour": 15.97, "couverture_jours": 59.6, "valeur_stock_eur": 8340.27, "valeur_excedent_30j_eur": 4139.44, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0043", "libelle": "Complément oral HP/HC", "categorie": "Nutrition clinique", "fournisseur_id": "FRN-06", "stock_final": 200, "point_commande": 133, "conso_moy_jour": 12.08, "couverture_jours": 16.6, "valeur_stock_eur": 3570.0, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "B"}, {"code_article": "ART-0044", "libelle": "Nutrition entérale 500 mL", "categorie": "Nutrition clinique", "fournisseur_id": "FRN-06", "stock_final": 49, "point_commande": 67, "conso_moy_jour": 5.98, "couverture_jours": 8.2, "valeur_stock_eur": 1343.58, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Sous le point de commande", "classe_abc": "C"}, {"code_article": "ART-0045", "libelle": "Émulsion lipidique 250 mL", "categorie": "Nutrition clinique", "fournisseur_id": "FRN-06", "stock_final": 286, "point_commande": 139, "conso_moy_jour": 12.9, "couverture_jours": 22.2, "valeur_stock_eur": 1784.64, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "C"}, {"code_article": "ART-0046", "libelle": "Oligo-éléments 10 mL", "categorie": "Nutrition clinique", "fournisseur_id": "FRN-06", "stock_final": 590, "point_commande": 290, "conso_moy_jour": 25.91, "couverture_jours": 22.8, "valeur_stock_eur": 18655.8, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Normal", "classe_abc": "A"}, {"code_article": "ART-0047", "libelle": "Vitamines inj.", "categorie": "Nutrition clinique", "fournisseur_id": "FRN-06", "stock_final": 190, "point_commande": 220, "conso_moy_jour": 19.92, "couverture_jours": 9.5, "valeur_stock_eur": 4753.8, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 0.0, "taux_service": 1.0, "statut": "Sous le point de commande", "classe_abc": "A"}, {"code_article": "ART-0048", "libelle": "Complément oral sans lactose", "categorie": "Nutrition clinique", "fournisseur_id": "FRN-06", "stock_final": 3, "point_commande": 222, "conso_moy_jour": 20.73, "couverture_jours": 0.1, "valeur_stock_eur": 21.48, "valeur_excedent_30j_eur": 0.0, "jours_rupture_annee": 2.0, "taux_service": 0.995, "statut": "Sous le point de commande", "classe_abc": "C"}]};
+const fmtEur = v => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(v) + ' €';
+const fmtK = v => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(v / 1000) + ' k€';
+const fmtPct = (v, d = 1) => new Intl.NumberFormat('fr-FR', { style: 'percent', minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+const fmtNum = (v, d = 0) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: d, minimumFractionDigits: d }).format(v);
+const MOIS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+const moisLabel = m => MOIS[parseInt(m.slice(5, 7), 10) - 1];
+const NS = 'http://www.w3.org/2000/svg';
+const tip = document.getElementById('tip');
+let scope = 'Toutes', showAll = false;
+
+function el(name, attrs = {}, parent) {
+  const e = document.createElementNS(NS, name);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function showTip(html, evt) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const x = Math.min(evt.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  const y = Math.max(evt.clientY - tip.offsetHeight - 12, 8);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip() { tip.style.opacity = 0; }
+function cw(c) { return Math.max(Math.round(c.getBoundingClientRect().width) || 560, 280); }
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m * p >= v) return m * p; return 10 * p; }
+
+/* Courbe (1 série) avec réticule + infobulle */
+function lineChart(container, pts, { fmtAxis, fmtTip, color = 'var(--series-1)' }) {
+  container.innerHTML = '';
+  const W = cw(container), H = 240, m = { t: 12, r: 14, b: 26, l: 58 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Courbe mensuelle' }, container);
+  const max = niceMax(Math.max(...pts.map(p => p.v)) * 1.05);
+  const x = i => m.l + i * (W - m.l - m.r) / (pts.length - 1), y = v => H - m.b - v / max * (H - m.t - m.b);
+  const g = el('g', { class: 'axis' }, svg);
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4; el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: 'gridline' }, g); const t = el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, g); t.textContent = fmtAxis(v); }
+  pts.forEach((p, i) => { if (i % (W < 420 ? 3 : 2) === 0 || pts.length <= 6) { const t = el('text', { x: x(i), y: H - 8, 'text-anchor': 'middle' }, g); t.textContent = p.label; } });
+  el('path', { d: pts.map((p, i) => (i ? 'L' : 'M') + x(i) + ',' + y(p.v)).join(''), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+  const last = pts[pts.length - 1];
+  el('circle', { cx: x(pts.length - 1), cy: y(last.v), r: 4, fill: color, stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
+  const lt = el('text', { x: x(pts.length - 1) - 6, y: y(last.v) - 10, 'text-anchor': 'end', class: 'lab-strong' }, svg); lt.textContent = fmtAxis(last.v);
+  const cross = el('line', { y1: m.t, y2: H - m.b, stroke: 'rgba(255,255,255,.35)', 'stroke-width': 1, opacity: 0 }, svg);
+  const dot = el('circle', { r: 5, fill: color, stroke: 'var(--surface)', 'stroke-width': 2, opacity: 0 }, svg);
+  const hit = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' }, svg);
+  hit.addEventListener('mousemove', e => {
+    const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * W / r.width;
+    const i = Math.max(0, Math.min(pts.length - 1, Math.round((px - m.l) / ((W - m.l - m.r) / (pts.length - 1)))));
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('opacity', 1);
+    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(pts[i].v)); dot.setAttribute('opacity', 1);
+    showTip(fmtTip(pts[i]), e);
+  });
+  hit.addEventListener('mouseleave', () => { cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); hideTip(); });
+}
+
+/* Barres verticales (1 série) */
+function barChart(container, pts, { fmtAxis, fmtTip, color = 'var(--series-1)' }) {
+  container.innerHTML = '';
+  const W = cw(container), H = 240, m = { t: 12, r: 10, b: 26, l: 48 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Barres mensuelles' }, container);
+  const max = niceMax(Math.max(...pts.map(p => p.v), 0.0001) * 1.1);
+  const bw = (W - m.l - m.r) / pts.length, y = v => H - m.b - v / max * (H - m.t - m.b);
+  const g = el('g', { class: 'axis' }, svg);
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4; el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: 'gridline' }, g); const t = el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, g); t.textContent = fmtAxis(v); }
+  const top = pts.reduce((a, b) => (b.v > a.v ? b : a));
+  pts.forEach((p, i) => {
+    const x0 = m.l + i * bw + 3, w = bw - 6, h = Math.max(H - m.b - y(p.v), 0), r = Math.min(4, w / 2, h);
+    const yTop = H - m.b - h;
+    const d = h > 0 ? `M${x0},${H - m.b} V${yTop + r} Q${x0},${yTop} ${x0 + r},${yTop} H${x0 + w - r} Q${x0 + w},${yTop} ${x0 + w},${yTop + r} V${H - m.b} Z` : '';
+    if (d) el('path', { d, fill: color }, svg);
+    if (W >= 420 || i % 2 === 0) { const t = el('text', { x: x0 + w / 2, y: H - 8, 'text-anchor': 'middle', class: 'lab' }, svg); t.textContent = p.label; }
+    if (p === top) { const lt = el('text', { x: x0 + w / 2, y: yTop - 6, 'text-anchor': 'middle', class: 'lab-strong' }, svg); lt.textContent = fmtAxis(p.v); }
+    const hit = el('rect', { x: m.l + i * bw, y: m.t, width: bw, height: H - m.t - m.b, fill: 'transparent' }, svg);
+    hit.addEventListener('mousemove', e => showTip(fmtTip(p), e)); hit.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* Barres horizontales groupées (1 ou 2 séries) */
+function hbarChart(container, rows, series, { fmtVal, fmtTip, labelW = 170 }) {
+  container.innerHTML = '';
+  const rowH = series.length > 1 ? 34 : 30, W = cw(container), m = { t: 6, r: 56, b: 6, l: Math.min(labelW, Math.round(W * 0.38)) };
+  const H = m.t + m.b + rows.length * rowH;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Barres horizontales' }, container);
+  const max = Math.max(...rows.flatMap(r => series.map(s => r[s.key]))) * 1.02;
+  const x = v => m.l + v / max * (W - m.l - m.r);
+  const bh = series.length > 1 ? 11 : 16;
+  rows.forEach((r, i) => {
+    const y0 = m.t + i * rowH;
+    const t = el('text', { x: m.l - 10, y: y0 + rowH / 2 + 4, 'text-anchor': 'end', class: 'lab' }, svg); const maxC = Math.floor((m.l - 16) / 5.9); t.textContent = r.label.length > maxC ? r.label.slice(0, maxC - 1) + '…' : r.label;
+    series.forEach((s, j) => {
+      const yy = y0 + (rowH - bh * series.length - 2 * (series.length - 1)) / 2 + j * (bh + 2);
+      const w = Math.max(x(r[s.key]) - m.l, 0), rr = Math.min(4, bh / 2, w);
+      el('path', { d: `M${m.l},${yy} H${m.l + w - rr} Q${m.l + w},${yy} ${m.l + w},${yy + rr} V${yy + bh - rr} Q${m.l + w},${yy + bh} ${m.l + w - rr},${yy + bh} H${m.l} Z`, fill: s.color }, svg);
+      const lt = el('text', { x: m.l + w + 6, y: yy + bh / 2 + 4, class: j === series.length - 1 ? 'lab-strong' : 'lab' }, svg); lt.textContent = fmtVal(r[s.key]);
+    });
+    const hit = el('rect', { x: 0, y: y0, width: W, height: rowH, fill: 'transparent' }, svg);
+    hit.addEventListener('mousemove', e => showTip(fmtTip(r), e)); hit.addEventListener('mouseleave', hideTip);
+  });
+}
+
+const STATUS = {
+  'Sous le point de commande': { color: 'var(--critical)', icon: '⚠', label: 'Sous le point de commande' },
+  'Surstock (> 60 j)': { color: 'var(--serious)', icon: '◆', label: 'Surstock (> 60 j)' },
+  'Normal': { color: 'var(--good)', icon: '✓', label: 'Normal' },
+};
+
+function renderFilters() {
+  const f = document.getElementById('filters');
+  ['Toutes', ...DATA.categories].forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = c; b.setAttribute('aria-pressed', c === scope);
+    b.onclick = () => { scope = c; f.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); };
+    f.appendChild(b);
+  });
+}
+
+function render() {
+  const s = DATA.scopes[scope], k = s.kpis;
+  const tiles = [
+    ['Valeur du stock au 31/12', fmtK(k.valeur_stock), `${k.nb_articles} articles`],
+    ['Taux de service', fmtPct(k.taux_service), 'quantité servie / demandée'],
+    ['Jours-articles en rupture', fmtPct(k.taux_rupture), 'sur l\'année 2025'],
+    ['Couverture médiane', fmtNum(k.couverture_mediane, 1) + ' j', 'stock / conso. moyenne 90 j'],
+    ['Alertes au 31/12', `${k.nb_sous_point_commande} + ${k.nb_surstock}`, 'sous point de cde + surstock'],
+    ['Trésorerie immobilisée', fmtK(k.valeur_excedent_30j), 'au-delà de 30 j de couverture'],
+  ];
+  document.getElementById('kpis').innerHTML = tiles.map(t => `<div class="tile"><div class="lbl">${t[0]}</div><div class="val">${t[1]}</div><div class="sub">${t[2]}</div></div>`).join('');
+
+  lineChart(document.getElementById('chart-valeur'), s.mensuel.map(m => ({ label: moisLabel(m.mois), v: m.valeur_stock, m })), {
+    fmtAxis: fmtK, fmtTip: p => `<b>${p.label} 2025</b><br>Valeur du stock : ${fmtEur(p.v)}<br>Taux de service : ${fmtPct(p.m.taux_service)}`,
+  });
+  barChart(document.getElementById('chart-rupture'), s.mensuel.map(m => ({ label: moisLabel(m.mois).slice(0, 4), v: m.taux_rupture, m })), {
+    fmtAxis: v => fmtPct(v, 1), fmtTip: p => `<b>${moisLabel(p.m.mois)} 2025</b><br>Jours-articles en rupture : ${fmtPct(p.v)}<br>Taux de service : ${fmtPct(p.m.taux_service)}`,
+  });
+  hbarChart(document.getElementById('chart-abc'), s.abc.map(c => ({ label: `Classe ${c.classe} · ${c.nb_articles} art.`, v: c.part_valeur, c })),
+    [{ key: 'v', color: 'var(--series-1)' }], { fmtVal: v => fmtPct(v, 0), fmtTip: r => `<b>Classe ${r.c.classe}</b><br>${r.c.nb_articles} articles<br>${fmtPct(r.v)} de la valeur consommée`, labelW: 150 });
+  hbarChart(document.getElementById('chart-frn'), s.fournisseurs.map(f => ({ label: f.nom.replace(' (fictif)', ''), prevu: f.delai_prevu, reel: f.delai_reel, f })),
+    [{ key: 'prevu', color: 'var(--series-1)' }, { key: 'reel', color: 'var(--series-2)' }],
+    { fmtVal: v => fmtNum(v, 1) + ' j', fmtTip: r => `<b>${r.f.nom}</b><br>Délai prévu : ${fmtNum(r.prevu, 1)} j<br>Délai réel : ${fmtNum(r.reel, 1)} j<br>Livraisons en retard : ${fmtPct(r.f.taux_retard, 0)}<br>${r.f.nb_commandes} commandes`, labelW: 150 });
+
+  const order = { 'Sous le point de commande': 0, 'Surstock (> 60 j)': 1, 'Normal': 2 };
+  const rows = DATA.articles.filter(a => (scope === 'Toutes' || a.categorie === scope) && (showAll || a.statut !== 'Normal'))
+    .sort((a, b) => order[a.statut] - order[b.statut] || a.couverture_jours - b.couverture_jours);
+  document.querySelector('#table tbody').innerHTML = rows.map(a => {
+    const st = STATUS[a.statut];
+    return `<tr><td><b>${a.libelle}</b><br><span style="color:var(--muted);font-size:.75rem">${a.code_article}</span></td><td>${a.categorie}</td><td>${a.classe_abc}</td>
+      <td class="num">${fmtNum(a.stock_final)}</td><td class="num">${fmtNum(a.point_commande)}</td><td class="num">${fmtNum(a.couverture_jours, 1)}</td>
+      <td class="num">${fmtNum(a.valeur_stock_eur)}</td><td><span class="status"><span class="dot" style="background:${st.color}"></span>${st.icon} ${st.label}</span></td></tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:var(--muted)">Aucun article à surveiller pour cette catégorie.</td></tr>';
+
+  const worst = [...s.fournisseurs].sort((a, b) => (b.delai_reel - b.delai_prevu) - (a.delai_reel - a.delai_prevu))[0];
+  const pic = [...s.mensuel].sort((a, b) => b.taux_rupture - a.taux_rupture)[0];
+  document.getElementById('insights').innerHTML = [
+    `Pic de ruptures en <b>${moisLabel(pic.mois).toLowerCase()}</b> (${fmtPct(pic.taux_rupture)} des jours-articles) : revoir les points de commande des articles concernés.`,
+    `<b>${worst.nom.replace(' (fictif)', '')}</b> livre en ${fmtNum(worst.delai_reel, 1)} j au lieu de ${fmtNum(worst.delai_prevu, 1)} j prévus : intégrer le délai réel dans le calcul du point de commande.`,
+    `Ramener les surstocks à 30 jours de couverture libérerait environ <b>${fmtK(k.valeur_excedent_30j)}</b> de trésorerie.`,
+    `Les articles de classe A concentrent ${fmtPct(s.abc[0].part_valeur, 0)} de la valeur : à suivre en priorité (revue hebdomadaire).`,
+  ].map(t => `<li>${t}</li>`).join('');
+}
+
+document.getElementById('toggleAll').onclick = e => { showAll = !showAll; e.currentTarget.setAttribute('aria-pressed', showAll); e.currentTarget.textContent = showAll ? 'Afficher seulement les alertes' : 'Afficher tous les articles'; render(); };
+renderFilters();
+render();
+let rz; let lastW = window.innerWidth;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (window.innerWidth !== lastW) { lastW = window.innerWidth; render(); } }, 150); });
+</script>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pilotage des stocks hospitaliers — Dashboard | Fiacre Yehossou</title>
+<meta name="description" content="Tableau de bord de pilotage des stocks d'une pharmacie hospitalière (données fictives) : valeur du stock, ruptures, couverture, classification ABC, fiabilité fournisseurs.">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #060b14; --surface: #0f192b; --surface-2: #13203a;
+    --text: #f8fafc; --text-2: #cbd5e1; --muted: #94a3b8;
+    --grid: rgba(255,255,255,0.07); --border: rgba(255,255,255,0.09);
+    --accent: #38bdf8;
+    --series-1: #3987e5; --series-2: #d95926;
+    --good: #0ca30c; --serious: #ec835a; --critical: #d03b3b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; line-height: 1.5; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { width: min(1240px, calc(100% - 32px)); margin: 0 auto; }
+  header { padding: 28px 0 8px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: .9rem; }
+  .topbar .links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; font-size: .85rem; }
+  .btn:hover { border-color: var(--accent); text-decoration: none; }
+  .kicker { display: inline-block; margin-top: 26px; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.7rem, 3.4vw, 2.5rem); line-height: 1.15; margin: 6px 0 10px; }
+  .lead { color: var(--text-2); max-width: 860px; }
+  .notice { margin-top: 16px; padding: 12px 16px; border-radius: 12px; background: rgba(56,189,248,.07); border: 1px solid rgba(56,189,248,.25); color: var(--text-2); font-size: .88rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 18px; align-items: center; }
+  .filters span { color: var(--muted); font-size: .85rem; margin-right: 4px; }
+  .chip { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font: inherit; font-size: .83rem; font-weight: 600; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: #06111f; border-color: var(--accent); }
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+  .tile .lbl { color: var(--muted); font-size: .78rem; font-weight: 600; min-height: 2.4em; }
+  .tile .val { font-family: 'Space Grotesk', sans-serif; font-size: 1.65rem; font-weight: 700; margin-top: 4px; }
+  .tile .sub { color: var(--muted); font-size: .76rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 12px; position: relative; }
+  .card h2 { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; }
+  .card .desc { color: var(--muted); font-size: .8rem; margin-bottom: 8px; }
+  .legend { display: flex; gap: 16px; font-size: .8rem; color: var(--text-2); margin-bottom: 4px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .axis text, .lab { fill: var(--muted); font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .lab-strong { fill: var(--text); font-size: 11px; font-weight: 700; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .tip { position: fixed; pointer-events: none; background: #0b1424; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; padding: 8px 10px; font-size: .8rem; color: var(--text); box-shadow: 0 8px 24px rgba(0,0,0,.45); opacity: 0; transition: opacity .12s; z-index: 10; max-width: 260px; }
+  .tip b { font-weight: 700; }
+  .tablecard { margin-top: 16px; }
+  .tablehead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 720px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: .76rem; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .status { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text); }
+  .status .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .method { margin: 18px 0 40px; color: var(--muted); font-size: .84rem; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .method h3 { color: var(--text); font-size: .95rem; margin-bottom: 6px; font-family: 'Space Grotesk', sans-serif; }
+  .method ul { padding-left: 18px; }
+  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 860px) { .grid, .method { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .kpis { grid-template-columns: repeat(2, 1fr); } .tile .val { font-size: 1.35rem; } }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="topbar">
+    <a href="https://portfolio-fiacre-yehossou.vercel.app/#projets">← Portfolio de Fiacre Yehossou</a>
+    <div class="links">
+      <a class="btn" href="https://github.com/finagnon/pilotage-stocks-hospitaliers" target="_blank" rel="noopener noreferrer">Code sur GitHub ↗</a>
+    </div>
+  </div>
+  <span class="kicker">Projet data • Supply chain hospitalière</span>
+  <h1>Pilotage des stocks d'une pharmacie hospitalière</h1>
+  <p class="lead">Suivi de 48 références (anticancéreux, antibiotiques, solutés, dispositifs médicaux…) sur une année :
+    valeur du stock, ruptures, couverture en jours, classification ABC et fiabilité des délais fournisseurs.
+    Indicateurs calculés en SQL (DuckDB) et Python.</p>
+  <p class="notice">🔒 <b>Données 100 % fictives, générées par simulation.</b> Aucune donnée patient, aucune donnée de santé
+    ni aucune donnée personnelle (RGPD) : uniquement des articles, des fournisseurs fictifs et des quantités agrégées par jour.</p>
+</header>
+
+<main class="wrap">
+  <div class="filters" role="group" aria-label="Filtrer par catégorie" id="filters"><span>Catégorie :</span></div>
+
+  <section class="kpis" id="kpis" aria-label="Indicateurs clés"></section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Valeur du stock en fin de mois</h2>
+      <p class="desc">En euros, au dernier jour de chaque mois de 2025.</p>
+      <div id="chart-valeur"></div>
+    </div>
+    <div class="card">
+      <h2>Jours-articles en rupture</h2>
+      <p class="desc">Part des jours où la demande d'un article n'a pas pu être servie en totalité.</p>
+      <div id="chart-rupture"></div>
+    </div>
+    <div class="card">
+      <h2>Classification ABC (Pareto)</h2>
+      <p class="desc">Part de la valeur consommée par classe — A : 80 % de la valeur, B : 15 %, C : 5 %.</p>
+      <div id="chart-abc"></div>
+    </div>
+    <div class="card">
+      <h2>Délais fournisseurs : prévu vs réel</h2>
+      <p class="desc">Délai moyen de livraison en jours, commandes réceptionnées.</p>
+      <div class="legend"><span><i style="background:var(--series-1)"></i>Délai prévu</span><span><i style="background:var(--series-2)"></i>Délai réel</span></div>
+      <div id="chart-frn"></div>
+    </div>
+  </section>
+
+  <section class="card tablecard">
+    <div class="tablehead">
+      <div>
+        <h2>Articles à surveiller au 31/12/2025</h2>
+        <p class="desc" style="margin:0">Sous le point de commande (risque de rupture) ou en surstock (couverture &gt; 60 jours).</p>
+      </div>
+      <button class="chip" id="toggleAll" aria-pressed="false">Afficher tous les articles</button>
+    </div>
+    <div class="tablewrap"><table id="table"><thead><tr>
+      <th>Article</th><th>Catégorie</th><th>ABC</th><th class="num">Stock</th><th class="num">Point de cde</th>
+      <th class="num">Couverture (j)</th><th class="num">Valeur (€)</th><th>Statut</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="method">
+    <div>
+      <h3>Méthode</h3>
+      <ul>
+        <li>Simulation d'une politique de réapprovisionnement (point de commande, quantité fixe) avec des délais fournisseurs aléatoires.</li>
+        <li>Indicateurs calculés en SQL (DuckDB) : valeur de stock, taux de service, ruptures, couverture sur 90 jours, Pareto ABC.</li>
+        <li>Couverture cible : 30 jours. L'excédent au-delà est valorisé comme trésorerie immobilisée.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Lecture et pistes d'action</h3>
+      <ul id="insights"></ul>
+    </div>
+  </section>
+</main>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const fmtEur = v => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(v) + ' €';
+const fmtK = v => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(v / 1000) + ' k€';
+const fmtPct = (v, d = 1) => new Intl.NumberFormat('fr-FR', { style: 'percent', minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+const fmtNum = (v, d = 0) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: d, minimumFractionDigits: d }).format(v);
+const MOIS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+const moisLabel = m => MOIS[parseInt(m.slice(5, 7), 10) - 1];
+const NS = 'http://www.w3.org/2000/svg';
+const tip = document.getElementById('tip');
+let scope = 'Toutes', showAll = false;
+
+function el(name, attrs = {}, parent) {
+  const e = document.createElementNS(NS, name);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function showTip(html, evt) {
+  tip.innerHTML = html; tip.style.opacity = 1;
+  const x = Math.min(evt.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  const y = Math.max(evt.clientY - tip.offsetHeight - 12, 8);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip() { tip.style.opacity = 0; }
+function cw(c) { return Math.max(Math.round(c.getBoundingClientRect().width) || 560, 280); }
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m * p >= v) return m * p; return 10 * p; }
+
+/* Courbe (1 série) avec réticule + infobulle */
+function lineChart(container, pts, { fmtAxis, fmtTip, color = 'var(--series-1)' }) {
+  container.innerHTML = '';
+  const W = cw(container), H = 240, m = { t: 12, r: 14, b: 26, l: 58 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Courbe mensuelle' }, container);
+  const max = niceMax(Math.max(...pts.map(p => p.v)) * 1.05);
+  const x = i => m.l + i * (W - m.l - m.r) / (pts.length - 1), y = v => H - m.b - v / max * (H - m.t - m.b);
+  const g = el('g', { class: 'axis' }, svg);
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4; el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: 'gridline' }, g); const t = el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, g); t.textContent = fmtAxis(v); }
+  pts.forEach((p, i) => { if (i % (W < 420 ? 3 : 2) === 0 || pts.length <= 6) { const t = el('text', { x: x(i), y: H - 8, 'text-anchor': 'middle' }, g); t.textContent = p.label; } });
+  el('path', { d: pts.map((p, i) => (i ? 'L' : 'M') + x(i) + ',' + y(p.v)).join(''), fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+  const last = pts[pts.length - 1];
+  el('circle', { cx: x(pts.length - 1), cy: y(last.v), r: 4, fill: color, stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
+  const lt = el('text', { x: x(pts.length - 1) - 6, y: y(last.v) - 10, 'text-anchor': 'end', class: 'lab-strong' }, svg); lt.textContent = fmtAxis(last.v);
+  const cross = el('line', { y1: m.t, y2: H - m.b, stroke: 'rgba(255,255,255,.35)', 'stroke-width': 1, opacity: 0 }, svg);
+  const dot = el('circle', { r: 5, fill: color, stroke: 'var(--surface)', 'stroke-width': 2, opacity: 0 }, svg);
+  const hit = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' }, svg);
+  hit.addEventListener('mousemove', e => {
+    const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * W / r.width;
+    const i = Math.max(0, Math.min(pts.length - 1, Math.round((px - m.l) / ((W - m.l - m.r) / (pts.length - 1)))));
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('opacity', 1);
+    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(pts[i].v)); dot.setAttribute('opacity', 1);
+    showTip(fmtTip(pts[i]), e);
+  });
+  hit.addEventListener('mouseleave', () => { cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); hideTip(); });
+}
+
+/* Barres verticales (1 série) */
+function barChart(container, pts, { fmtAxis, fmtTip, color = 'var(--series-1)' }) {
+  container.innerHTML = '';
+  const W = cw(container), H = 240, m = { t: 12, r: 10, b: 26, l: 48 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Barres mensuelles' }, container);
+  const max = niceMax(Math.max(...pts.map(p => p.v), 0.0001) * 1.1);
+  const bw = (W - m.l - m.r) / pts.length, y = v => H - m.b - v / max * (H - m.t - m.b);
+  const g = el('g', { class: 'axis' }, svg);
+  for (let k = 0; k <= 4; k++) { const v = max * k / 4; el('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), class: 'gridline' }, g); const t = el('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, g); t.textContent = fmtAxis(v); }
+  const top = pts.reduce((a, b) => (b.v > a.v ? b : a));
+  pts.forEach((p, i) => {
+    const x0 = m.l + i * bw + 3, w = bw - 6, h = Math.max(H - m.b - y(p.v), 0), r = Math.min(4, w / 2, h);
+    const yTop = H - m.b - h;
+    const d = h > 0 ? `M${x0},${H - m.b} V${yTop + r} Q${x0},${yTop} ${x0 + r},${yTop} H${x0 + w - r} Q${x0 + w},${yTop} ${x0 + w},${yTop + r} V${H - m.b} Z` : '';
+    if (d) el('path', { d, fill: color }, svg);
+    if (W >= 420 || i % 2 === 0) { const t = el('text', { x: x0 + w / 2, y: H - 8, 'text-anchor': 'middle', class: 'lab' }, svg); t.textContent = p.label; }
+    if (p === top) { const lt = el('text', { x: x0 + w / 2, y: yTop - 6, 'text-anchor': 'middle', class: 'lab-strong' }, svg); lt.textContent = fmtAxis(p.v); }
+    const hit = el('rect', { x: m.l + i * bw, y: m.t, width: bw, height: H - m.t - m.b, fill: 'transparent' }, svg);
+    hit.addEventListener('mousemove', e => showTip(fmtTip(p), e)); hit.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* Barres horizontales groupées (1 ou 2 séries) */
+function hbarChart(container, rows, series, { fmtVal, fmtTip, labelW = 170 }) {
+  container.innerHTML = '';
+  const rowH = series.length > 1 ? 34 : 30, W = cw(container), m = { t: 6, r: 56, b: 6, l: Math.min(labelW, Math.round(W * 0.38)) };
+  const H = m.t + m.b + rows.length * rowH;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Barres horizontales' }, container);
+  const max = Math.max(...rows.flatMap(r => series.map(s => r[s.key]))) * 1.02;
+  const x = v => m.l + v / max * (W - m.l - m.r);
+  const bh = series.length > 1 ? 11 : 16;
+  rows.forEach((r, i) => {
+    const y0 = m.t + i * rowH;
+    const t = el('text', { x: m.l - 10, y: y0 + rowH / 2 + 4, 'text-anchor': 'end', class: 'lab' }, svg); const maxC = Math.floor((m.l - 16) / 5.9); t.textContent = r.label.length > maxC ? r.label.slice(0, maxC - 1) + '…' : r.label;
+    series.forEach((s, j) => {
+      const yy = y0 + (rowH - bh * series.length - 2 * (series.length - 1)) / 2 + j * (bh + 2);
+      const w = Math.max(x(r[s.key]) - m.l, 0), rr = Math.min(4, bh / 2, w);
+      el('path', { d: `M${m.l},${yy} H${m.l + w - rr} Q${m.l + w},${yy} ${m.l + w},${yy + rr} V${yy + bh - rr} Q${m.l + w},${yy + bh} ${m.l + w - rr},${yy + bh} H${m.l} Z`, fill: s.color }, svg);
+      const lt = el('text', { x: m.l + w + 6, y: yy + bh / 2 + 4, class: j === series.length - 1 ? 'lab-strong' : 'lab' }, svg); lt.textContent = fmtVal(r[s.key]);
+    });
+    const hit = el('rect', { x: 0, y: y0, width: W, height: rowH, fill: 'transparent' }, svg);
+    hit.addEventListener('mousemove', e => showTip(fmtTip(r), e)); hit.addEventListener('mouseleave', hideTip);
+  });
+}
+
+const STATUS = {
+  'Sous le point de commande': { color: 'var(--critical)', icon: '⚠', label: 'Sous le point de commande' },
+  'Surstock (> 60 j)': { color: 'var(--serious)', icon: '◆', label: 'Surstock (> 60 j)' },
+  'Normal': { color: 'var(--good)', icon: '✓', label: 'Normal' },
+};
+
+function renderFilters() {
+  const f = document.getElementById('filters');
+  ['Toutes', ...DATA.categories].forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = c; b.setAttribute('aria-pressed', c === scope);
+    b.onclick = () => { scope = c; f.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); };
+    f.appendChild(b);
+  });
+}
+
+function render() {
+  const s = DATA.scopes[scope], k = s.kpis;
+  const tiles = [
+    ['Valeur du stock au 31/12', fmtK(k.valeur_stock), `${k.nb_articles} articles`],
+    ['Taux de service', fmtPct(k.taux_service), 'quantité servie / demandée'],
+    ['Jours-articles en rupture', fmtPct(k.taux_rupture), 'sur l\'année 2025'],
+    ['Couverture médiane', fmtNum(k.couverture_mediane, 1) + ' j', 'stock / conso. moyenne 90 j'],
+    ['Alertes au 31/12', `${k.nb_sous_point_commande} + ${k.nb_surstock}`, 'sous point de cde + surstock'],
+    ['Trésorerie immobilisée', fmtK(k.valeur_excedent_30j), 'au-delà de 30 j de couverture'],
+  ];
+  document.getElementById('kpis').innerHTML = tiles.map(t => `<div class="tile"><div class="lbl">${t[0]}</div><div class="val">${t[1]}</div><div class="sub">${t[2]}</div></div>`).join('');
+
+  lineChart(document.getElementById('chart-valeur'), s.mensuel.map(m => ({ label: moisLabel(m.mois), v: m.valeur_stock, m })), {
+    fmtAxis: fmtK, fmtTip: p => `<b>${p.label} 2025</b><br>Valeur du stock : ${fmtEur(p.v)}<br>Taux de service : ${fmtPct(p.m.taux_service)}`,
+  });
+  barChart(document.getElementById('chart-rupture'), s.mensuel.map(m => ({ label: moisLabel(m.mois).slice(0, 4), v: m.taux_rupture, m })), {
+    fmtAxis: v => fmtPct(v, 1), fmtTip: p => `<b>${moisLabel(p.m.mois)} 2025</b><br>Jours-articles en rupture : ${fmtPct(p.v)}<br>Taux de service : ${fmtPct(p.m.taux_service)}`,
+  });
+  hbarChart(document.getElementById('chart-abc'), s.abc.map(c => ({ label: `Classe ${c.classe} · ${c.nb_articles} art.`, v: c.part_valeur, c })),
+    [{ key: 'v', color: 'var(--series-1)' }], { fmtVal: v => fmtPct(v, 0), fmtTip: r => `<b>Classe ${r.c.classe}</b><br>${r.c.nb_articles} articles<br>${fmtPct(r.v)} de la valeur consommée`, labelW: 150 });
+  hbarChart(document.getElementById('chart-frn'), s.fournisseurs.map(f => ({ label: f.nom.replace(' (fictif)', ''), prevu: f.delai_prevu, reel: f.delai_reel, f })),
+    [{ key: 'prevu', color: 'var(--series-1)' }, { key: 'reel', color: 'var(--series-2)' }],
+    { fmtVal: v => fmtNum(v, 1) + ' j', fmtTip: r => `<b>${r.f.nom}</b><br>Délai prévu : ${fmtNum(r.prevu, 1)} j<br>Délai réel : ${fmtNum(r.reel, 1)} j<br>Livraisons en retard : ${fmtPct(r.f.taux_retard, 0)}<br>${r.f.nb_commandes} commandes`, labelW: 150 });
+
+  const order = { 'Sous le point de commande': 0, 'Surstock (> 60 j)': 1, 'Normal': 2 };
+  const rows = DATA.articles.filter(a => (scope === 'Toutes' || a.categorie === scope) && (showAll || a.statut !== 'Normal'))
+    .sort((a, b) => order[a.statut] - order[b.statut] || a.couverture_jours - b.couverture_jours);
+  document.querySelector('#table tbody').innerHTML = rows.map(a => {
+    const st = STATUS[a.statut];
+    return `<tr><td><b>${a.libelle}</b><br><span style="color:var(--muted);font-size:.75rem">${a.code_article}</span></td><td>${a.categorie}</td><td>${a.classe_abc}</td>
+      <td class="num">${fmtNum(a.stock_final)}</td><td class="num">${fmtNum(a.point_commande)}</td><td class="num">${fmtNum(a.couverture_jours, 1)}</td>
+      <td class="num">${fmtNum(a.valeur_stock_eur)}</td><td><span class="status"><span class="dot" style="background:${st.color}"></span>${st.icon} ${st.label}</span></td></tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:var(--muted)">Aucun article à surveiller pour cette catégorie.</td></tr>';
+
+  const worst = [...s.fournisseurs].sort((a, b) => (b.delai_reel - b.delai_prevu) - (a.delai_reel - a.delai_prevu))[0];
+  const pic = [...s.mensuel].sort((a, b) => b.taux_rupture - a.taux_rupture)[0];
+  document.getElementById('insights').innerHTML = [
+    `Pic de ruptures en <b>${moisLabel(pic.mois).toLowerCase()}</b> (${fmtPct(pic.taux_rupture)} des jours-articles) : revoir les points de commande des articles concernés.`,
+    `<b>${worst.nom.replace(' (fictif)', '')}</b> livre en ${fmtNum(worst.delai_reel, 1)} j au lieu de ${fmtNum(worst.delai_prevu, 1)} j prévus : intégrer le délai réel dans le calcul du point de commande.`,
+    `Ramener les surstocks à 30 jours de couverture libérerait environ <b>${fmtK(k.valeur_excedent_30j)}</b> de trésorerie.`,
+    `Les articles de classe A concentrent ${fmtPct(s.abc[0].part_valeur, 0)} de la valeur : à suivre en priorité (revue hebdomadaire).`,
+  ].map(t => `<li>${t}</li>`).join('');
+}
+
+document.getElementById('toggleAll').onclick = e => { showAll = !showAll; e.currentTarget.setAttribute('aria-pressed', showAll); e.currentTarget.textContent = showAll ? 'Afficher seulement les alertes' : 'Afficher tous les articles'; render(); };
+renderFilters();
+render();
+let rz; let lastW = window.innerWidth;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (window.innerWidth !== lastW) { lastW = window.innerWidth; render(); } }, 150); });
+</script>
+</body>
+</html>
